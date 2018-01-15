@@ -20,9 +20,9 @@ import (
 const IndexName = "wik"
 
 var indexMetadata = index.NewMetadata().
-	AddField(index.NewTextField("title", 10)).
-	AddField(index.NewTextField("body", 1)).
-	AddField(index.NewNumericField("score"))
+	AddField(index.NewTextField("body", 1))
+	//AddField(index.NewTextField("title", 10)).
+	//AddField(index.NewNumericField("score"))
 
 // selectIndex selects and configures the index we are now running based on the engine name, hosts and number of shards
 func selectIndex(engine string, hosts []string, partitions int, cmdPrefix string) (index.Index, index.Autocompleter, interface{}) {
