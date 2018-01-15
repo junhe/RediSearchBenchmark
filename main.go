@@ -142,7 +142,7 @@ func main() {
 			}
 		}
 
-		if err := ingest.IngestDocuments(*fileName, wr, idx, ac, redisearch.IndexingOptions{NoSave: true,
+		if err := ingest.IngestDocuments(*fileName, wr, idx, ac, redisearch.IndexingOptions{NoSave: false,
 			NoOffsetVectors: true}, 1000); err != nil {
 			panic(err)
 		}
