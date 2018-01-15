@@ -139,7 +139,10 @@ func (i *Index) Index(docs []index.Document, options interface{}) error {
 		args = append(args, "FIELDS")
 
 		for k, f := range doc.Properties {
-			args = append(args, k, f)
+			if k == "body" {
+				//fmt.Println(k)
+				args = append(args, k, f)
+			}
 		}
 
 		if err := conn.Send(i.commandPrefix+".ADD", args...); err != nil {
