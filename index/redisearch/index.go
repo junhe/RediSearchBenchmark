@@ -199,6 +199,8 @@ func (i *Index) Search(q query.Query) (docs []index.Document, total int, err err
 	args := redis.Args{i.name, q.Term, "LIMIT", q.Paging.Offset, q.Paging.Num, "WITHSCORES"}
 	//if q.Flags&query.QueryVerbatim != 0 {
 	args = append(args, "VERBATIM")
+	args = append(args, "SUMMARIZE")
+	args = append(args, "HIGHLIGHT")
 	//}
 	if q.Flags&query.QueryNoContent != 0 {
 		args = append(args, "NOCONTENT")
