@@ -3,7 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
+	"bufio"
+        "os"
 	"strings"
 	"time"
 
@@ -57,6 +58,27 @@ func selectIndex(engine string, hosts []string, partitions int, cmdPrefix string
 	}
 	panic("could not find index type " + engine)
 }
+func loadQueryPool(file_path string) ([]string){
+        fmt.Println("Query Pool Path: ", file_path)
+        // load document
+        var querypool []string
+        file, err := os.Open(file_path)
+        if err != nil {
+            panic(err)
+        }
+        defer file.Close()
+
+        scanner := bufio.NewScanner(file)
+        for scanner.Scan() {
+            //fmt.Println(scanner.Text())
+            querypool = append(querypool, scanner.Text())
+        }
+
+        if err := scanner.Err(); err != nil {
+            panic(err)
+        }
+        return querypool
+}
 
 func main() {
 
@@ -74,20 +96,28 @@ func main() {
 	outfile := flag.String("o", "benchmark.csv", "results output file. set to - for stdout")
 	duration := time.Second * time.Duration(*seconds)
 	cmdPrefix := flag.String("prefix", "FT", "Command prefix for FT module")
+        querypath := flag.String("querypath", "", "Query pool for benchmark")
 
 	flag.Parse()
 	servers := strings.Split(*hosts, ",")
 	if len(servers) == 0 {
 		panic("No servers given")
 	}
-	queries := strings.Split(*qs, ",")
+
+        var queries []string
+        if *querypath == "" {
+	        queries = strings.Split(*qs, ",")
+        } else {
+                queries = loadQueryPool(*querypath)
+                fmt.Println("Overall ", len(queries), " queries")
+        }
 
 	// select index to run
 	idx, ac, opts := selectIndex(*engine, servers, *partitions, *cmdPrefix)
 
 	// Search benchmark
 	if *benchmark == "search" {
-		name := fmt.Sprintf("search: %s", *qs)
+                name := fmt.Sprintf("search: %s", *qs)
 		Benchmark(*conc, duration, *engine, name, *outfile, SearchBenchmark(queries, idx, opts))
 		os.Exit(0)
 	}

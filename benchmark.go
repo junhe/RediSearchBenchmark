@@ -16,24 +16,23 @@ import (
 
 // SearchBenchmark returns a closure of a function for the benchmarker to run, using a given index
 // and options, on a set of queries
-func SearchBenchmark(queries []string, idx index.Index, opts interface{}) func() error {
-
+func SearchBenchmark(queries []string, idx index.Index, opts interface{}) func(int) error {
 	counter := 0
-	return func() error {
-		q := query.NewQuery(IndexName, queries[counter%len(queries)]).Limit(0, 5)
+	return func(client_id int) error {
+		q := query.NewQuery(IndexName, queries[((client_id+1)*counter)%len(queries)]).Limit(0, 5)
 		_, _, err := idx.Search(*q)
-		counter++
+		//fmt.Println("Client ", client_id, " Get here ", counter, (client_id+1)*counter, ((client_id+1)*counter)%len(queries), queries[((client_id+1)*counter)%len(queries)])
+                counter++
 		return err
 	}
-
 }
 
 // AutocompleteBenchmark returns a configured autocomplete benchmarking function to be run by
 // the benchmarker
-func AutocompleteBenchmark(ac index.Autocompleter, fuzzy bool) func() error {
+func AutocompleteBenchmark(ac index.Autocompleter, fuzzy bool) func(int) error {
 	counter := 0
 	sz := len(prefixes)
-	return func() error {
+	return func(client_id int) error {
 		_, err := ac.Suggest(prefixes[rand.Intn(sz)], 5, fuzzy)
 		counter++
 		return err
@@ -46,7 +45,7 @@ func AutocompleteBenchmark(ac index.Autocompleter, fuzzy bool) func() error {
 // with the results to a CSV file given by outfile.
 //
 // If outfile is "-" we write the result to stdout
-func Benchmark(concurrency int, duration time.Duration, engine, title string, outfile string, f func() error) {
+func Benchmark(concurrency int, duration time.Duration, engine, title string, outfile string, f func(int) error) {
 
 	var out io.WriteCloser
 	var err error
@@ -70,12 +69,12 @@ func Benchmark(concurrency int, duration time.Duration, engine, title string, ou
 
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
-		go func() {
+		go func(client_id int) { // pass in client_id = i
 			for time.Now().Before(end) {
 
 				tst := time.Now()
 
-				if err = f(); err != nil {
+				if err = f(client_id); err != nil {
 					panic(err)
 				}
 
@@ -85,7 +84,7 @@ func Benchmark(concurrency int, duration time.Duration, engine, title string, ou
 
 			}
 			wg.Done()
-		}()
+		}(i)
 	}
 	wg.Wait()
 
