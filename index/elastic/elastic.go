@@ -173,27 +173,34 @@ func (i *Index) Index(docs []index.Document, opts interface{}) error {
 // the total number of results, or an error if something went wrong
 func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
 
-	eq := elastic.NewQueryStringQuery(q.Term)
+	//eq := elastic.NewQueryStringQuery(q.Term)
+	eq := elastic.NewMatchQuery("body", q.Term)
+        //matchAllQ := NewMatchAllQuery()
         //TODO change to term query?
 
         // Specify highlighter
         hl := elastic.NewHighlight()
-        hl = hl.Fields(elastic.NewHighlighterField("body"))
-
+        hl = hl.Fields(elastic.NewHighlighterField("body"))   //???
+        hl = hl.PreTags("<em>").PostTags("</em>")
+        // TODO set: passages
+        src, err := hl.Source()
+        j_src, _ := json.MarshalIndent(&src, "", "   ")
+        fmt.Println(string(j_src))
 	res, err := i.conn.Search(i.name).Type("doc").
-		Query(eq).
+                Query(eq).
+		Highlight(hl).
 		From(q.Paging.Offset).
 		Size(q.Paging.Num).
 		Do()
 
+        j, _ := json.MarshalIndent(&res, "", "   ")
+        fmt.Println(string(j))
 	if err != nil {
 		return nil, 0, err
 	}
-        fmt.Println("Search: ", q.Term, " Res: ", res.Hits.Hits[1].Score)
 
 	ret := make([]index.Document, 0, q.Paging.Num)
 	for _, h := range res.Hits.Hits {
-
 		if h != nil {
 			d := index.NewDocument(h.Id, float32(*h.Score))
 			if err := json.Unmarshal(*h.Source, &d.Properties); err == nil {
