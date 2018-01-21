@@ -159,7 +159,7 @@ func (i *Index) Index(docs []index.Document, opts interface{}) error {
 	blk := i.conn.Bulk()
 
 	for _, doc := range docs {
-                fmt.Println(doc.Properties)
+                //fmt.Println(doc.Properties)
 		req := elastic.NewBulkIndexRequest().Index(i.name).Type("doc").Id(doc.Id).Doc(doc.Properties)
 		blk.Add(req)
 
@@ -176,9 +176,12 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
 	eq := elastic.NewQueryStringQuery(q.Term)
         //TODO change to term query?
 
+        // Specify highlighter
+        hl := elastic.NewHighlight()
+        hl = hl.Fields(elastic.NewHighlighterField("body"))
+
 	res, err := i.conn.Search(i.name).Type("doc").
 		Query(eq).
-
 		From(q.Paging.Offset).
 		Size(q.Paging.Num).
 		Do()
@@ -186,7 +189,7 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-        fmt.Println(res)
+        fmt.Println("Search: ", q.Term, " Res: ", res.Hits.Hits[1].Score)
 
 	ret := make([]index.Document, 0, q.Paging.Num)
 	for _, h := range res.Hits.Hits {
