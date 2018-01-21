@@ -172,29 +172,38 @@ func (i *Index) Index(docs []index.Document, opts interface{}) error {
 // Search searches the index for the given query, and returns documents,
 // the total number of results, or an error if something went wrong
 func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
-
+        Flag_highlight := true
 	//eq := elastic.NewQueryStringQuery(q.Term)
 	eq := elastic.NewMatchQuery("body", q.Term)
-        //matchAllQ := NewMatchAllQuery()
-        //TODO change to term query?
 
         // Specify highlighter
         hl := elastic.NewHighlight()
-        hl = hl.Fields(elastic.NewHighlighterField("body"))   //???
+        hl = hl.Fields(elastic.NewHighlighterField("body"))
         hl = hl.PreTags("<em>").PostTags("</em>")
-        // TODO set: passages
-        src, err := hl.Source()
-        j_src, _ := json.MarshalIndent(&src, "", "   ")
-        fmt.Println(string(j_src))
-	res, err := i.conn.Search(i.name).Type("doc").
+        //src, err := hl.Source()
+        //j_src, _ := json.MarshalIndent(&src, "", "   ")
+        //fmt.Println(string(j_src))
+        //fmt.Println("offset: ", q.Paging.Offset, "max size: ", q.Paging.Num)
+        var res *elastic.SearchResult
+        var err error
+        if Flag_highlight == true {
+                res, err = i.conn.Search(i.name).Type("doc").
                 Query(eq).
 		Highlight(hl).
 		From(q.Paging.Offset).
 		Size(q.Paging.Num).
 		Do()
+        } else {
+                res, err = i.conn.Search(i.name).Type("doc").
+                Query(eq).
+		From(q.Paging.Offset).
+		Size(q.Paging.Num).
+		Do()
+        }
 
-        j, _ := json.MarshalIndent(&res, "", "   ")
-        fmt.Println(string(j))
+        //j, _ := json.MarshalIndent(&res, "", "   ")
+        //fmt.Println(string(j))
+
 	if err != nil {
 		return nil, 0, err
 	}
