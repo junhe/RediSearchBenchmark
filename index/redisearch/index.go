@@ -193,15 +193,18 @@ func loadDocument(id, sc, fields interface{}) (index.Document, error) {
 // Search searches the index for the given query, and returns documents,
 // the total number of results, or an error if something went wrong
 func (i *Index) Search(q query.Query) (docs []index.Document, total int, err error) {
-	conn := i.pool.Get()
+        Flag_highlight := true
+
+        conn := i.pool.Get()
 	defer conn.Close()
 
 	args := redis.Args{i.name, q.Term, "LIMIT", q.Paging.Offset, q.Paging.Num, "WITHSCORES"}
 	//if q.Flags&query.QueryVerbatim != 0 {
 	args = append(args, "VERBATIM")
-	args = append(args, "SUMMARIZE")
-	args = append(args, "HIGHLIGHT")
-	//}
+	if Flag_highlight == true {
+                args = append(args, "SUMMARIZE")
+	        args = append(args, "HIGHLIGHT")
+	}
 	if q.Flags&query.QueryNoContent != 0 {
 		args = append(args, "NOCONTENT")
 	}
@@ -210,7 +213,6 @@ func (i *Index) Search(q query.Query) (docs []index.Document, total int, err err
 	if err != nil {
 		return
 	}
-
 	if total, err = redis.Int(res[0], nil); err != nil {
 		return
 	}
@@ -225,7 +227,8 @@ func (i *Index) Search(q query.Query) (docs []index.Document, total int, err err
 			}
 			if d, e := loadDocument(res[i], res[i+1], res[i+2]); e == nil {
 				docs = append(docs, d)
-			}
+			        fmt.Println(d)
+                        }
 		}
 	}
 	return
