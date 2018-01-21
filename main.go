@@ -117,8 +117,13 @@ func main() {
 
 	// Search benchmark
 	if *benchmark == "search" {
-                name := fmt.Sprintf("search: %s", *qs)
-		Benchmark(*conc, duration, *engine, name, *outfile, SearchBenchmark(queries, idx, opts))
+                var name_str string
+                name_str = *qs
+                if *querypath != "" {
+                        name_str = *querypath
+                }
+                name := fmt.Sprintf("search: %s", name_str)
+                Benchmark(*conc, duration, *engine, name, *outfile, SearchBenchmark(queries, idx, opts))
 		os.Exit(0)
 	}
 
@@ -158,7 +163,8 @@ func main() {
 	}
 	// ingest documents into the selected engine
 	if *fileName != "" && *benchmark == "" {
-		if ac != nil {
+		fmt.Println("Prepare to index...")
+                if ac != nil {
 			ac.Delete()
 		}
 

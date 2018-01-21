@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"time"
+        "fmt"
 
 	"github.com/RedisLabs/RediSearchBenchmark/index"
 	"github.com/RedisLabs/RediSearchBenchmark/query"
@@ -23,7 +24,8 @@ type Index struct {
 // NewIndex creates a new elasticSearch index with the given address and name. typ is the entity type
 func NewIndex(addr, name, typ string, md *index.Metadata) (*Index, error) {
 
-	client := &http.Client{
+	fmt.Println("Get a new index: ", addr, name)
+        client := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConnsPerHost: 200,
 		},
@@ -31,6 +33,7 @@ func NewIndex(addr, name, typ string, md *index.Metadata) (*Index, error) {
 	}
 	conn, err := elastic.NewClient(elastic.SetURL(addr), elastic.SetHttpClient(client))
 	if err != nil {
+                fmt.Println("Get error here");
 		return nil, err
 	}
 	ret := &Index{
@@ -75,22 +78,77 @@ func (i *Index) Create() error {
 		doc.Properties[f.Name]["type"] = fs
 	}
 
+        // Added for apple to apple benchmark
+        doc.Properties["body"]["type"] = "text"
+        doc.Properties["body"]["analyzer"] = "my_english_analyzer"
+        doc.Properties["body"]["search_analyzer"] = "whitespace"
+        //doc.Properties["body"]["test"] = "test"
+        index_map := map[string]int{
+              "number_of_shards" : 1,
+              "number_of_replicas" : 1,
+        }
+        analyzer_map := map[string]interface{}{
+                  "my_english_analyzer": map[string]interface{}{
+                      "tokenizer":  "standard",
+                      "char_filter":  []string{ "html_strip" } ,
+                      "filter" : []string{"english_possessive_stemmer", 
+                                  "lowercase", "english_stop", 
+                                  "english_stemmer", 
+                                  "asciifolding", "icu_folding"},
+                  },
+              }
+        filter_map := map[string]interface{}{
+                  "english_stop": map[string]interface{}{
+                        "type":       "stop",
+                        "stopwords":  "_english_",
+                  },
+                  "english_possessive_stemmer": map[string]interface{}{
+                        "type":       "stemmer",
+                        "language":   "possessive_english",
+                  },
+                  "english_stemmer" : map[string]interface{}{
+                        "type" : "stemmer",
+                        "name" : "english",
+                  },
+                  "my_folding": map[string]interface{}{
+                        "type": "asciifolding",
+                        "preserve_original": "false",
+                  },
+              }
+        analysis_map := map[string]interface{}{
+              "analyzer": analyzer_map,
+              "filter"  : filter_map,
+        }
+        settings := map[string]interface{}{
+               "index": index_map,
+               "analysis": analysis_map,
+        }
+
+        // TODO delete?
 	// we currently manually create the autocomplete mapping
-	ac := mapping{
+	/*ac := mapping{
 		Properties: map[string]mappingProperty{
 			"sugg": mappingProperty{
 				"type":     "completion",
 				"payloads": true,
 			},
 		},
-	}
+	}*/
 
 	mappings := map[string]mapping{
 		i.typ:          doc,
-		"autocomplete": ac,
+                //	"autocomplete": ac,
 	}
 
-	_, err := i.conn.CreateIndex(i.name).BodyJson(map[string]interface{}{"mappings": mappings}).Do()
+        fmt.Println(mappings)
+
+	//_, err := i.conn.CreateIndex(i.name).BodyJson(map[string]interface{}{"mappings": mappings}).Do()
+	_, err := i.conn.CreateIndex(i.name).BodyJson(map[string]interface{}{"mappings": mappings, "settings": settings}).Do()
+
+        if err != nil {
+                fmt.Println("Error ", err)
+		fmt.Println("!!!!Get Error when using client to create index")
+	}
 
 	return err
 }
@@ -101,6 +159,7 @@ func (i *Index) Index(docs []index.Document, opts interface{}) error {
 	blk := i.conn.Bulk()
 
 	for _, doc := range docs {
+                fmt.Println(doc.Properties)
 		req := elastic.NewBulkIndexRequest().Index(i.name).Type("doc").Id(doc.Id).Doc(doc.Properties)
 		blk.Add(req)
 
@@ -115,8 +174,11 @@ func (i *Index) Index(docs []index.Document, opts interface{}) error {
 func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
 
 	eq := elastic.NewQueryStringQuery(q.Term)
+        //TODO change to term query?
+
 	res, err := i.conn.Search(i.name).Type("doc").
 		Query(eq).
+
 		From(q.Paging.Offset).
 		Size(q.Paging.Num).
 		Do()
@@ -124,6 +186,7 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
+        fmt.Println(res)
 
 	ret := make([]index.Document, 0, q.Paging.Num)
 	for _, h := range res.Hits.Hits {
