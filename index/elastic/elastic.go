@@ -84,7 +84,7 @@ func (i *Index) Create() error {
         doc.Properties["body"]["search_analyzer"] = "whitespace"
         //doc.Properties["body"]["test"] = "test"
         index_map := map[string]int{
-              "number_of_shards" : 1,
+              "number_of_shards" : 2,
               "number_of_replicas" : 1,
         }
         analyzer_map := map[string]interface{}{

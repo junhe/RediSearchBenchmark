@@ -227,7 +227,7 @@ func (i *Index) Search(q query.Query) (docs []index.Document, total int, err err
 			}
 			if d, e := loadDocument(res[i], res[i+1], res[i+2]); e == nil {
 				docs = append(docs, d)
-			        fmt.Println(d)
+			        //fmt.Println(d)
                         }
 		}
 	}
