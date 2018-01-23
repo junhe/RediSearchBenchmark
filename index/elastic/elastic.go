@@ -27,9 +27,10 @@ func NewIndex(addr, name, typ string, md *index.Metadata) (*Index, error) {
 	fmt.Println("Get a new index: ", addr, name)
         client := &http.Client{
 		Transport: &http.Transport{
-			MaxIdleConnsPerHost: 200,
+			//MaxIdleConnsPerHost: 200,
+			MaxIdleConnsPerHost: 2000000,
 		},
-		Timeout: 250 * time.Millisecond,
+		Timeout: 25000 * time.Millisecond,
 	}
 	conn, err := elastic.NewClient(elastic.SetURL(addr), elastic.SetHttpClient(client))
 	if err != nil {
@@ -84,8 +85,8 @@ func (i *Index) Create() error {
         doc.Properties["body"]["search_analyzer"] = "whitespace"
         //doc.Properties["body"]["test"] = "test"
         index_map := map[string]int{
-              "number_of_shards" : 2,
-              "number_of_replicas" : 1,
+              "number_of_shards" : 1,
+              "number_of_replicas" : 0,
         }
         analyzer_map := map[string]interface{}{
                   "my_english_analyzer": map[string]interface{}{
@@ -157,16 +158,25 @@ func (i *Index) Create() error {
 func (i *Index) Index(docs []index.Document, opts interface{}) error {
 
 	blk := i.conn.Bulk()
-
 	for _, doc := range docs {
-                //fmt.Println(doc.Properties)
+                //fmt.Println(doc.Id)
 		req := elastic.NewBulkIndexRequest().Index(i.name).Type("doc").Id(doc.Id).Doc(doc.Properties)
 		blk.Add(req)
-
+		/*_, err := i.conn.Index().Index(i.name).Type("doc").Id(doc.Id).BodyJson(doc.Properties).Do()
+                if err != nil {
+                        // Handle error
+                        panic(err)
+                }*/
+                //fmt.Printf("Indexed tweet %s to index %s, type %s\n", put2.Id, put2.Index, put2.Type)
 	}
-	_, err := blk.Refresh(true).Do()
-
+	//_, err := blk.Refresh(true).Do()
+	_, err := blk.Refresh(false).Do()
+        if err != nil {
+                panic(err)
+                fmt.Println("Get Error during indexing", err)
+        }
 	return err
+	//return nil
 }
 
 // Search searches the index for the given query, and returns documents,

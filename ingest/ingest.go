@@ -19,6 +19,7 @@ type DocumentReader interface {
 func IngestDocuments(fileName string, r DocumentReader, idx index.Index, ac index.Autocompleter, opts interface{}, chunk int) error {
 
 	// open the file
+        fmt.Println("===== Get in ingesting")
 	fp, err := os.Open(fileName)
 	if err != nil {
 		return err
@@ -49,7 +50,9 @@ func IngestDocuments(fileName string, r DocumentReader, idx index.Index, ac inde
 				if doc.Id != "" {
 					//fmt.Println(doc)
 					idx.Index([]index.Document{doc}, opts)
-				}
+				}/* else {
+                                        fmt.Println("Get empty Id")
+                                }*/
 			}
 		}(doch)
 	}
