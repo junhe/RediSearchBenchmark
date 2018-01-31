@@ -35,6 +35,11 @@ func NewIndex(url, name string, md *index.Metadata) (*Index, error) {
 
 }
 
+func (i *Index) Refresh() error {
+
+        return nil
+}
+
 // Index indexes multiple documents on the index, with optional IndexingOptions passed to options
 func (i *Index) Index(documents []index.Document, options interface{}) error {
 

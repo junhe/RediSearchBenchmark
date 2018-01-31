@@ -9,6 +9,7 @@ import (
 type Index interface {
 	Index(documents []Document, options interface{}) error
 	Search(query.Query) (docs []Document, total int, err error)
-	Drop() error
+	Refresh() error
+        Drop() error
 	Create() error
 }

@@ -114,15 +114,16 @@ func (wr *WikipediaAbstractsReader) Read(r io.Reader) (<-chan index.Document, er
 					id := path.Base(props["url"])
 					if len(id) > 0 {
 						title := strings.TrimPrefix(strings.TrimSpace(props["title"]), "Wikipedia: ")
+						//fmt.Println(id, title)
 						body := strings.TrimSpace(props["abstract"])
-						//fmt.Println(title)
+						//fmt.Println(body)
 						if filter(title, body) {
 							doc := index.NewDocument(id, wr.score(id)).
 								Set("title", title).
 								Set("body", body).
 								Set("url", strings.TrimSpace(props["url"]))
 								//Set("score", rand.Int31n(50000))
-							ch <- doc
+                                                        ch <- doc
 						}
 					}
 					props = map[string]string{}

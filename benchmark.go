@@ -14,14 +14,23 @@ import (
 	"github.com/RedisLabs/RediSearchBenchmark/query"
 )
 
+var latencyPool [100000]int     // 0-100000 0.1ms
+var longtail []float64
 // SearchBenchmark returns a closure of a function for the benchmarker to run, using a given index
 // and options, on a set of queries
 func SearchBenchmark(queries []string, idx index.Index, opts interface{}) func(int) error {
 	counter := 0
 	return func(client_id int) error {
 		q := query.NewQuery(IndexName, queries[((client_id+1)*counter)%len(queries)]).Limit(0, 5)
-		_, _, err := idx.Search(*q)
-		//fmt.Println("Client ", client_id, " Get here ", counter, (client_id+1)*counter, ((client_id+1)*counter)%len(queries), queries[((client_id+1)*counter)%len(queries)])
+		st := time.Now()
+                _, _, err := idx.Search(*q)
+                latency := time.Since(st).Nanoseconds()/100000
+                if latency > 99999 {
+                        //fmt.Println("======= long tail: ", float64(latency)/10, " ms")
+		        longtail = append(longtail, float64(latency)/10)
+                } else {
+                       latencyPool[latency] += 1
+                }
                 counter++
 		return err
 	}
@@ -98,6 +107,22 @@ func Benchmark(concurrency int, duration time.Duration, engine, title string, ou
 		fmt.Sprintf("%d", concurrency),
 		fmt.Sprintf("%.02f", rate),
 		fmt.Sprintf("%.02f", avgLatency)})
+
+        for i:=0; i < 100000; i++ {
+               if latencyPool[i]!=0 {
+                       for j:=0; j < latencyPool[i]; j++ {
+                           fmt.Print(float32(i)/10, ",")
+                       }
+               }
+        }
+        for i:=0; i< len(longtail); i++ {
+               fmt.Println("Get here")
+               fmt.Print(longtail[i], ",")
+        }
+
+        fmt.Println()
+
+        //fmt.Println(latencyPool)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing: %s\n", err)

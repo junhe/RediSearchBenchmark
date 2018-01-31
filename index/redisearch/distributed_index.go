@@ -46,6 +46,9 @@ func NewDistributedIndex(name string, hosts []string, partitions int, md *index.
 
 }
 
+func (i *DistributedIndex) Refresh() error {
+        return nil
+}
 // Create calls the FT.CREATE command based on the metadata on all sub-indexes
 func (i *DistributedIndex) Create() error {
 	for _, s := range i.partitions {

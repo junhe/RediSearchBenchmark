@@ -70,6 +70,10 @@ func NewIndex(addr, name string, md *index.Metadata) *Index {
 
 }
 
+func (i *Index) Refresh() error {
+
+        return nil
+}
 // Create configues the index and creates it on redis
 func (i *Index) Create() error {
 
@@ -209,8 +213,9 @@ func (i *Index) Search(q query.Query) (docs []index.Document, total int, err err
 		args = append(args, "NOCONTENT")
 	}
 
+        fmt.Println(args)
 	res, err := redis.Values(conn.Do(i.commandPrefix+".SEARCH", args...))
-	if err != nil {
+        if err != nil {
 		return
 	}
 	if total, err = redis.Int(res[0], nil); err != nil {

@@ -30,7 +30,7 @@ func NewIndex(addr, name, typ string, md *index.Metadata) (*Index, error) {
 			//MaxIdleConnsPerHost: 200,
 			MaxIdleConnsPerHost: 2000000,
 		},
-		Timeout: 25000 * time.Millisecond,
+		Timeout: 250000 * time.Millisecond,
 	}
 	conn, err := elastic.NewClient(elastic.SetURL(addr), elastic.SetHttpClient(client))
 	if err != nil {
@@ -156,10 +156,9 @@ func (i *Index) Create() error {
 
 // Index indexes multiple documents
 func (i *Index) Index(docs []index.Document, opts interface{}) error {
-
-	blk := i.conn.Bulk()
+        blk := i.conn.Bulk()
 	for _, doc := range docs {
-                //fmt.Println(doc.Id)
+                //fmt.Println("indexing ", doc.Id)
 		req := elastic.NewBulkIndexRequest().Index(i.name).Type("doc").Id(doc.Id).Doc(doc.Properties)
 		blk.Add(req)
 		/*_, err := i.conn.Index().Index(i.name).Type("doc").Id(doc.Id).BodyJson(doc.Properties).Do()
@@ -179,12 +178,20 @@ func (i *Index) Index(docs []index.Document, opts interface{}) error {
 	//return nil
 }
 
+// Refresh the index
+func (i *Index) Refresh() error {
+	_, _ = i.conn.Flush().Index(i.name).Do()
+        return nil
+}
+
 // Search searches the index for the given query, and returns documents,
 // the total number of results, or an error if something went wrong
 func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
         Flag_highlight := true
 	//eq := elastic.NewQueryStringQuery(q.Term)
-	eq := elastic.NewMatchQuery("body", q.Term)
+	eq := elastic.NewMatchQuery("body", q.Term).Operator("and")    //Simple AND query
+	//eq := elastic.NewMatchPhraseQuery("body", q.Term).Slop(0)      //Phrase Query
+	//eq := elastic.NewMatchPhraseQuery("body", q.Term).Slop(4)       //Proximity Query
 
         // Specify highlighter
         hl := elastic.NewHighlight()
@@ -196,6 +203,10 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
         //fmt.Println("offset: ", q.Paging.Offset, "max size: ", q.Paging.Num)
         var res *elastic.SearchResult
         var err error
+        // to get latency distribution of each query
+        //st_latency := time.Now()
+
+
         if Flag_highlight == true {
                 res, err = i.conn.Search(i.name).Type("doc").
                 Query(eq).
@@ -213,7 +224,7 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
 
         //j, _ := json.MarshalIndent(&res, "", "   ")
         //fmt.Println(string(j))
-
+        //fmt.Println("=======", res.Hits.TotalHits)
 	if err != nil {
 		return nil, 0, err
 	}
