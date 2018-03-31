@@ -1,0 +1,19 @@
+redis,"search: hello world,foo bar",32,16952.01,1.89
+redis,"search: hello world,foo bar",32,15672.16,2.04
+redis,search: hello world,32,17319.76,1.85
+redis,search: hello world,32,17631.15,1.81
+redis,search: hello world,32,31704.79,1.01
+redis,search: hello world,32,7453.34,4.29
+redis,search: hello,32,8208.27,3.90
+redis,search: hello world,32,19949.55,1.60
+redis,search: hello world,32,4177.45,6.49
+redis,search: hello world,32,23993.99,1.33
+redis,search: hello,32,23734.89,1.35
+elastic,search: hello,32,4173.46,7.66
+elastic,search: hello world,32,9549.11,3.35
+elastic,search: hello,32,4361.35,7.33
+elastic,search: hello world,32,8193.45,3.90
+elastic,search: hello,32,6198.42,5.16
+elastic,search: hello,32,4300.00,7.43
+elastic,search: hello,32,4338.21,7.37
+redis,search: hello,32,6618.67,4.83

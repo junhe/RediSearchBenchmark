@@ -201,10 +201,12 @@ func (i *Index) Search(q query.Query) (docs []index.Document, total int, err err
 
         conn := i.pool.Get()
 	defer conn.Close()
-
-	args := redis.Args{i.name, q.Term, "LIMIT", q.Paging.Offset, q.Paging.Num, "WITHSCORES"}
+        //query_content := "\""+q.Term + "\"" //Phrase
+        query_content := q.Term  // AND 
+	
+        args := redis.Args{i.name, query_content, "LIMIT", q.Paging.Offset, q.Paging.Num, "WITHSCORES"}
 	//if q.Flags&query.QueryVerbatim != 0 {
-	args = append(args, "VERBATIM")
+        args = append(args, "VERBATIM")
 	if Flag_highlight == true {
                 args = append(args, "SUMMARIZE")
 	        args = append(args, "HIGHLIGHT")
@@ -212,16 +214,17 @@ func (i *Index) Search(q query.Query) (docs []index.Document, total int, err err
 	if q.Flags&query.QueryNoContent != 0 {
 		args = append(args, "NOCONTENT")
 	}
-
-        fmt.Println(args)
+        //fmt.Println( args)    // ""?
 	res, err := redis.Values(conn.Do(i.commandPrefix+".SEARCH", args...))
         if err != nil {
+	    fmt.Println("Here in Value", err)
 		return
 	}
 	if total, err = redis.Int(res[0], nil); err != nil {
-		return
+	    fmt.Println("Here in Int")
+            return
 	}
-
+        //fmt.Println("Results: ", total)
 	docs = make([]index.Document, 0, len(res)-1)
 
 	if len(res) > 3 {

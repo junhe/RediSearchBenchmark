@@ -30,7 +30,7 @@ func NewIndex(addr, name, typ string, md *index.Metadata) (*Index, error) {
 			//MaxIdleConnsPerHost: 200,
 			MaxIdleConnsPerHost: 2000000,
 		},
-		Timeout: 250000 * time.Millisecond,
+		Timeout: 2500000 * time.Millisecond,
 	}
 	conn, err := elastic.NewClient(elastic.SetURL(addr), elastic.SetHttpClient(client))
 	if err != nil {
@@ -83,6 +83,7 @@ func (i *Index) Create() error {
         doc.Properties["body"]["type"] = "text"
         doc.Properties["body"]["analyzer"] = "my_english_analyzer"
         doc.Properties["body"]["search_analyzer"] = "whitespace"
+        doc.Properties["body"]["index_options"] = "offsets"
         //doc.Properties["body"]["test"] = "test"
         index_map := map[string]int{
               "number_of_shards" : 1,
@@ -189,13 +190,14 @@ func (i *Index) Refresh() error {
 func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
         Flag_highlight := true
 	//eq := elastic.NewQueryStringQuery(q.Term)
-	eq := elastic.NewMatchQuery("body", q.Term).Operator("and")    //Simple AND query
-	//eq := elastic.NewMatchPhraseQuery("body", q.Term).Slop(0)      //Phrase Query
-	//eq := elastic.NewMatchPhraseQuery("body", q.Term).Slop(4)       //Proximity Query
+	//eq := elastic.NewMatchQuery("body", q.Term).Analyzer("whitespace").Operator("and")    //Simple AND query
+	eq := elastic.NewMatchPhraseQuery("body", q.Term).Analyzer("whitespace").Slop(0)      //Phrase Query
+	//eq := elastic.NewMatchPhraseQuery("body", q.Term).Analyzer("whitespace").Slop(100000)       //Proximity Query
 
         // Specify highlighter
         hl := elastic.NewHighlight()
         hl = hl.Fields(elastic.NewHighlighterField("body"))
+        hl = hl.HighlighterType("unified")
         hl = hl.PreTags("<em>").PostTags("</em>")
         //src, err := hl.Source()
         //j_src, _ := json.MarshalIndent(&src, "", "   ")
@@ -217,6 +219,7 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
         } else {
                 res, err = i.conn.Search(i.name).Type("doc").
                 Query(eq).
+		Highlight(hl).
 		From(q.Paging.Offset).
 		Size(q.Paging.Num).
 		Do()
@@ -225,6 +228,7 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
         //j, _ := json.MarshalIndent(&res, "", "   ")
         //fmt.Println(string(j))
         //fmt.Println("=======", res.Hits.TotalHits)
+        //fmt.Println("======= took ", res.TookInMillis, " ms\n\n")
 	if err != nil {
 		return nil, 0, err
 	}
@@ -240,7 +244,8 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
 
 	}
 
-	return ret, int(res.TotalHits()), err
+	//return ret, int(res.TotalHits()), err
+	return ret, int(res.TookInMillis*10), err
 }
 
 // Drop deletes the index

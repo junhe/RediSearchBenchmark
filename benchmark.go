@@ -23,8 +23,10 @@ func SearchBenchmark(queries []string, idx index.Index, opts interface{}) func(i
 	return func(client_id int) error {
 		q := query.NewQuery(IndexName, queries[((client_id+1)*counter)%len(queries)]).Limit(0, 5)
 		st := time.Now()
-                _, _, err := idx.Search(*q)
-                latency := time.Since(st).Nanoseconds()/100000
+                //_, took, err := idx.Search(*q)  //Single Query, cares about the latency
+                _, _, err := idx.Search(*q)     //Multiuple queries
+                latency := time.Since(st).Nanoseconds()/100000   //Multiple queries
+                //latency = int64(took)                 // Single Query 
                 if latency > 99999 {
                         //fmt.Println("======= long tail: ", float64(latency)/10, " ms")
 		        longtail = append(longtail, float64(latency)/10)
@@ -74,12 +76,15 @@ func Benchmark(concurrency int, duration time.Duration, engine, title string, ou
 	var total uint64
 	wg := sync.WaitGroup{}
 
-	end := time.Now().Add(duration)
+	//end := time.Now().Add(duration)
+        max_queries := uint64(100000)
+        //max_queries := uint64(1)
 
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		go func(client_id int) { // pass in client_id = i
-			for time.Now().Before(end) {
+			//for time.Now().Before(end) {
+			for ; total < max_queries; {
 
 				tst := time.Now()
 
@@ -99,29 +104,66 @@ func Benchmark(concurrency int, duration time.Duration, engine, title string, ou
 
 	avgLatency := (float64(totalTime) / float64(total)) / float64(time.Millisecond)
 	rate := float64(total) / (float64(time.Since(startTime)) / float64(time.Second))
+        // get median/95/99 latency
+        pos_median := int(total/2)
+        pos_95 := int(float64(total)/100*95)
+        pos_99 := int(float64(total)/100*99)
 
+        pos := 0
+        lat_median := 0.0
+        lat_95 := 0.0
+        lat_99 := 0.0
+        for i:=0; i < 100000; i++ {
+                if latencyPool[i] == 0 {
+                    continue
+                }
+                pos += latencyPool[i]
+                if pos >= pos_median {
+                    if lat_median == 0.0 {
+                            lat_median = float64(i)/10
+                    }
+                    if pos >= pos_95 {
+                            if lat_95 == 0.0 {
+                                    lat_95 = float64(i)/10
+                            }
+                            if pos >= pos_99 {
+                                    if lat_99 == 0.0 {
+                                            lat_99 = float64(i)/10
+                                            break
+                                    }
+                            }
+                    }
+                }
+        }
+        fmt.Print("Throughput: ", rate)
+        fmt.Print("Latencies: ", lat_median, ", ", lat_95, ", ", lat_99, "\n")
+        fmt.Print("Positions: ", pos_median, ", ", pos_95, ", ", pos_99, "\n")
 	// Output the results to CSV
 	w := csv.NewWriter(out)
-
 	err = w.Write([]string{engine, title,
 		fmt.Sprintf("%d", concurrency),
 		fmt.Sprintf("%.02f", rate),
-		fmt.Sprintf("%.02f", avgLatency)})
+		fmt.Sprintf("%.02f", avgLatency),
+		fmt.Sprintf("%d", total),
+		fmt.Sprintf("%.02f", lat_median),
+		fmt.Sprintf("%.02f", lat_95),
+		fmt.Sprintf("%.02f", lat_99),
+                })
 
-        for i:=0; i < 100000; i++ {
-               if latencyPool[i]!=0 {
-                       for j:=0; j < latencyPool[i]; j++ {
-                           fmt.Print(float32(i)/10, ",")
-                       }
-               }
-        }
+        //for i:=0; i < 100000; i++ {
+        //       if latencyPool[i]!=0 {
+        //               for j:=0; j < latencyPool[i]; j++ {
+        //                   fmt.Print(float32(i)/10, ",")
+        //               }
+        //       }
+        //}
         for i:=0; i< len(longtail); i++ {
-               fmt.Println("Get here")
+               fmt.Println("Long tail:")
                fmt.Print(longtail[i], ",")
         }
 
         fmt.Println()
-
+        fmt.Print("Total: ", total, " Queries")
         //fmt.Println(latencyPool)
 
 	if err != nil {

@@ -90,7 +90,7 @@ func main() {
 	benchmark := flag.String("benchmark", "", "[search|suggest] - if set, we run the given benchmark")
 	random := flag.Int("random", 0, "Generate random documents with terms like term0..term{N}")
 	fuzzy := flag.Bool("fuzzy", false, "For redis only - benchmark fuzzy auto suggest")
-	seconds := flag.Int("duration", 5, "number of seconds to run the benchmark")
+	seconds := flag.Int("duration", 100, "number of seconds to run the benchmark")
 	conc := flag.Int("c", 4, "benchmark concurrency")
 	qs := flag.String("queries", "hello world", "comma separated list of queries to benchmark")
 	outfile := flag.String("o", "benchmark.csv", "results output file. set to - for stdout")
@@ -123,6 +123,7 @@ func main() {
                         name_str = *querypath
                 }
                 name := fmt.Sprintf("search: %s", name_str)
+                //Benchmark(*conc, duration, *engine, name, *outfile, SearchBenchmark(queries, querytype, idx, opts))
                 Benchmark(*conc, duration, *engine, name, *outfile, SearchBenchmark(queries, idx, opts))
 		os.Exit(0)
 	}
