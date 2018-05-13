@@ -189,9 +189,14 @@ func (i *Index) Refresh() error {
 // the total number of results, or an error if something went wrong
 func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
         Flag_highlight := true
+	eq := elastic.NewMatchQuery("body", q.Term).Analyzer("whitespace").Operator("and")    //Simple AND query
+        if (q.Term[0] == '"') {
+            q.Term = q.Term[1:len(q.Term)-1]
+            eq = elastic.NewMatchPhraseQuery("body", q.Term).Analyzer("whitespace").Slop(0)      //Phrase Query
+        }
 	//eq := elastic.NewQueryStringQuery(q.Term)
 	//eq := elastic.NewMatchQuery("body", q.Term).Analyzer("whitespace").Operator("and")    //Simple AND query
-	eq := elastic.NewMatchPhraseQuery("body", q.Term).Analyzer("whitespace").Slop(0)      //Phrase Query
+        //eq := elastic.NewMatchPhraseQuery("body", q.Term).Analyzer("whitespace").Slop(0)      //Phrase Query
 	//eq := elastic.NewMatchPhraseQuery("body", q.Term).Analyzer("whitespace").Slop(100000)       //Proximity Query
 
         // Specify highlighter

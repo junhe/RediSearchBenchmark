@@ -9,6 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+        "strconv"
+        "strings"
 
 	"github.com/RedisLabs/RediSearchBenchmark/index"
 	"github.com/RedisLabs/RediSearchBenchmark/query"
@@ -21,7 +23,7 @@ var longtail []float64
 func SearchBenchmark(queries []string, idx index.Index, opts interface{}) func(int) error {
 	counter := 0
 	return func(client_id int) error {
-		q := query.NewQuery(IndexName, queries[((client_id+1)*counter)%len(queries)]).Limit(0, 5)
+		q := query.NewQuery(IndexName, queries[(client_id*(counter+1))%len(queries)]).Limit(0, 5)
 		st := time.Now()
                 //_, took, err := idx.Search(*q)  //Single Query, cares about the latency
                 _, _, err := idx.Search(*q)     //Multiuple queries
@@ -77,7 +79,9 @@ func Benchmark(concurrency int, duration time.Duration, engine, title string, ou
 	wg := sync.WaitGroup{}
 
 	//end := time.Now().Add(duration)
-        max_queries := uint64(100000)
+        querlog_length, _:= strconv.Atoi(strings.Fields(title)[2])
+        max_queries := uint64(querlog_length)
+        // uint64(100000)   // TODO
         //max_queries := uint64(1)
 
 	for i := 0; i < concurrency; i++ {
@@ -85,6 +89,7 @@ func Benchmark(concurrency int, duration time.Duration, engine, title string, ou
 		go func(client_id int) { // pass in client_id = i
 			//for time.Now().Before(end) {
 			for ; total < max_queries; {
+				atomic.AddUint64(&total, 1)
 
 				tst := time.Now()
 
@@ -93,7 +98,6 @@ func Benchmark(concurrency int, duration time.Duration, engine, title string, ou
 				}
 
 				// update the total requests performed and total time
-				atomic.AddUint64(&total, 1)
 				atomic.AddUint64(&totalTime, uint64(time.Since(tst)))
 
 			}
@@ -135,7 +139,8 @@ func Benchmark(concurrency int, duration time.Duration, engine, title string, ou
                     }
                 }
         }
-        fmt.Print("Throughput: ", rate)
+        fmt.Print("Duration: ", float64(total) / rate, "\n")
+        fmt.Print("Throughput: ", rate, "\n")
         fmt.Print("Latencies: ", lat_median, ", ", lat_95, ", ", lat_99, "\n")
         fmt.Print("Positions: ", pos_median, ", ", pos_95, ", ", pos_99, "\n")
 	// Output the results to CSV

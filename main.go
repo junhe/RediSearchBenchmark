@@ -122,7 +122,7 @@ func main() {
                 if *querypath != "" {
                         name_str = *querypath
                 }
-                name := fmt.Sprintf("search: %s", name_str)
+                name := fmt.Sprintf("search: %s %d", name_str, len(queries))
                 //Benchmark(*conc, duration, *engine, name, *outfile, SearchBenchmark(queries, querytype, idx, opts))
                 Benchmark(*conc, duration, *engine, name, *outfile, SearchBenchmark(queries, idx, opts))
 		os.Exit(0)
