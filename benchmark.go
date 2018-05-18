@@ -23,7 +23,8 @@ var longtail []float64
 func SearchBenchmark(queries []string, idx index.Index, opts interface{}) func(int) error {
 	counter := 0
 	return func(client_id int) error {
-		q := query.NewQuery(IndexName, queries[(client_id*(counter+1))%len(queries)]).Limit(0, 5)
+		//q := query.NewQuery(IndexName, queries[(client_id*(counter+1))%len(queries)]).Limit(0, 5)
+		q := query.NewQuery(IndexName, queries[((client_id/1000) + (client_id%1000) * counter)%len(queries)]).Limit(0, 5)
 		st := time.Now()
                 //_, took, err := idx.Search(*q)  //Single Query, cares about the latency
                 _, _, err := idx.Search(*q)     //Multiuple queries
@@ -93,7 +94,7 @@ func Benchmark(concurrency int, duration time.Duration, engine, title string, ou
 
 				tst := time.Now()
 
-				if err = f(client_id); err != nil {
+				if err = f(client_id*1000+concurrency); err != nil {
 					panic(err)
 				}
 
