@@ -190,7 +190,6 @@ func (i *Index) Refresh() error {
 func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
         Flag_highlight := true
 	eq := elastic.NewMatchQuery("body", q.Term).Analyzer("whitespace").Operator("and")    //Simple AND query
-        fmt.Println("tttttttt", q.Term)
         if (q.Term[0] == '"') {
             q.Term = q.Term[1:len(q.Term)-1]
             eq = elastic.NewMatchPhraseQuery("body", q.Term).Analyzer("whitespace").Slop(0)      //Phrase Query
@@ -231,9 +230,9 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
 		Do()
         }
 
-        j, _ := json.MarshalIndent(&res, "", "   ")
-        fmt.Println(string(j))
-        fmt.Println("=======", res.Hits.TotalHits)
+        //j, _ := json.MarshalIndent(&res, "", "   ")
+        //fmt.Println(string(j))
+        //fmt.Println("=======", res.Hits.TotalHits)
         //fmt.Println("======= took ", res.TookInMillis, " ms\n\n")
 	if err != nil {
 		return nil, 0, err
