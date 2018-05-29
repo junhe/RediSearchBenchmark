@@ -31,7 +31,7 @@ func SearchBenchmark(queries []string, idx index.Index, opts interface{}) func(i
                 next_id := nextquery
                 nextquery += 1
                 mutex.Unlock()
-                q := query.NewQuery(next_id % len(queries)]).Limit(0, 5)
+                q := query.NewQuery(IndexName, queries[int(next_id) % len(queries)]).Limit(0, 5)
 		st := time.Now()
                 //_, took, err := idx.Search(*q)  //Single Query, cares about the latency
                 _, _, err := idx.Search(*q)     //Multiuple queries
