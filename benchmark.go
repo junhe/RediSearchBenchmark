@@ -18,12 +18,20 @@ import (
 
 var latencyPool [100000]int     // 0-100000 0.1ms
 var longtail []float64
+var mutex = &sync.Mutex{}
+var nextquery uint64
+
 // SearchBenchmark returns a closure of a function for the benchmarker to run, using a given index
 // and options, on a set of queries
 func SearchBenchmark(queries []string, idx index.Index, opts interface{}) func(int) error {
 	counter := 0
 	return func(client_id int) error {
-		q := query.NewQuery(IndexName, queries[((client_id / 1000) + (client_id % 1000) * counter) % len(queries)]).Limit(0, 5)
+		//q := query.NewQuery(IndexName, queries[((client_id / 1000) + (client_id % 1000) * counter) % len(queries)]).Limit(0, 5)
+		mutex.Lock()
+                next_id := nextquery
+                nextquery += 1
+                mutex.Unlock()
+                q := query.NewQuery(next_id % len(queries)]).Limit(0, 5)
 		st := time.Now()
                 //_, took, err := idx.Search(*q)  //Single Query, cares about the latency
                 _, _, err := idx.Search(*q)     //Multiuple queries
