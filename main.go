@@ -47,7 +47,8 @@ func selectIndex(engine string, hosts []string, partitions int, cmdPrefix string
 		if err != nil {
 			panic(err)
 		}
-		return idx, idx, 0
+		fmt.Println("after get newindex====");
+                return idx, idx, 0
 	case "solr":
 		idx, err := solr.NewIndex(hosts[0], IndexName, indexMetadata)
 		if err != nil {

@@ -1,7 +1,7 @@
 package elastic
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"errors"
 	"net/http"
 	"time"
@@ -43,6 +43,7 @@ func NewIndex(addr, name, typ string, md *index.Metadata) (*Index, error) {
 		name: name,
 		typ:  typ,
 	}
+        fmt.Println("get here ======");
 
 	return ret, nil
 
@@ -188,7 +189,7 @@ func (i *Index) Refresh() error {
 // Search searches the index for the given query, and returns documents,
 // the total number of results, or an error if something went wrong
 func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
-        Flag_highlight := true
+        Flag_highlight := false
 	eq := elastic.NewMatchQuery("body", q.Term).Analyzer("whitespace").Operator("and")    //Simple AND query
         if (q.Term[0] == '"') {
             q.Term = q.Term[1:len(q.Term)-1]
@@ -224,9 +225,10 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
         } else {
                 res, err = i.conn.Search(i.name).Type("doc").
                 Query(eq).
-		Highlight(hl).
+		//Highlight(hl).
 		From(q.Paging.Offset).
 		Size(q.Paging.Num).
+                FetchSource(false).
 		Do()
         }
 
@@ -242,9 +244,11 @@ func (i *Index) Search(q query.Query) ([]index.Document, int, error) {
 	for _, h := range res.Hits.Hits {
 		if h != nil {
 			d := index.NewDocument(h.Id, float32(*h.Score))
-			if err := json.Unmarshal(*h.Source, &d.Properties); err == nil {
-				ret = append(ret, d)
-			}
+			//json.Unmarshal(*h.Source, &d.Properties);
+			ret = append(ret, d)
+			//if err := json.Unmarshal(*h.Source, &d.Properties); err == nil {
+			//	ret = append(ret, d)
+			//}
 		}
 
 	}
